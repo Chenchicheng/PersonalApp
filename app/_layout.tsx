@@ -13,7 +13,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '',
+          title: '食谱',
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="restaurant-menu" size={24} color={color} />
           ),
