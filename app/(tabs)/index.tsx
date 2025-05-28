@@ -3,11 +3,12 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ActionModal from '../src/components/ActionModal';
-import RecipeItem from '../src/components/RecipeItem';
-import SearchBar from '../src/components/SearchBar';
+import ActionModal from '../../src/components/ActionModal';
 
-import { Recipe } from './types';
+import RecipeItem from '../../src/components/RecipeItem';
+import SearchBar from '../../src/components/SearchBar';
+
+import { Recipe } from '../../src/components/types';
 
 // 主页面组件
 export default function RecipesPage() {
@@ -31,13 +32,17 @@ export default function RecipesPage() {
   
   const handleAddRecipeOption = () => {
     setModalVisible(false);
-    router.push("/plan");
+    // ✅ 延迟导航，等待动画关闭
+    setTimeout(() => {
+      router.push('/(modals)/AddRecipe');
+    }, 250); // 动画持续 200ms，延迟 250ms 保险
   };
   
   const handleAddPlanOption = () => {
     setModalVisible(false);
     // Navigate to plan page would go here
     console.log('Navigate to plan page');
+    router.push("/plan");
   };
 
   const handleRecipePress = (recipe: Recipe) => {

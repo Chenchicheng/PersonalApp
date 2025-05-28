@@ -56,12 +56,12 @@ const ActionModal = ({ visible, onClose, onAddRecipe, onAddPlan }: ActionModalPr
     Animated.parallel([
       Animated.timing(panY, {
         toValue: 300, // 向下滑动
-        duration: 200,
+        duration: 100,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0, // 背景渐隐
-        duration: 200,
+        duration: 100,
         useNativeDriver: true,
       }),
     ]).start(() => {
