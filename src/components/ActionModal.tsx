@@ -144,7 +144,7 @@ const ActionModal = ({ visible, onClose, onAddRecipe, onAddPlan }: ActionModalPr
           <ActionOption
             icon="restaurant"
             title="添加食谱"
-            color="#ff6b6b"
+            color="#ff7603"
             onPress={onAddRecipe}
           />
           <ActionOption

@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     fontSize: 16,
-    color: '#ff6b6b',
+    color: '#ff7603',
   },
   form: {
     flex: 1,
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   cancelOptionText: {
     fontSize: 16,
-    color: '#ff6b6b',
+    color: '#ffa903',
     textAlign: 'center',
   },
 }); 
