@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ActionModal from '../../src/components/ActionModal';
 
@@ -18,12 +18,7 @@ export default function RecipesPage() {
   const [modalVisible, setModalVisible] = useState(false);
   
   // 示例食谱数据
-  const recipes: Recipe[] = [
-    { id: 1, name: '清炒菜心', category: '素菜' },
-    { id: 2, name: '清炒荷兰豆', category: '素菜' },
-    { id: 3, name: '油焖茄子', category: '素菜' },
-    { id: 4, name: '白灼西兰花', category: '素菜' },
-  ];
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
 
   // 事件处理函数
   const handleAddRecipe = () => {
@@ -49,20 +44,63 @@ export default function RecipesPage() {
     console.log(`Selected recipe: ${recipe.name}`);
   };
 
+  // 处理编辑菜谱
+  const handleEditRecipe = (recipe: Recipe) => {
+    console.log(`Edit recipe: ${recipe.name}`);
+    // 这里可以导航到编辑页面，并传递菜谱数据
+    // 示例：router.push({ pathname: '/(modals)/EditRecipe', params: { id: recipe.id } });
+  };
+
+  // 处理删除菜谱
+  const handleDeleteRecipe = (recipe: Recipe) => {
+    Alert.alert(
+      "删除菜谱",
+      `确定要删除"${recipe.name}"吗？`,
+      [
+        {
+          text: "取消",
+          style: "cancel"
+        },
+        { 
+          text: "删除", 
+          onPress: () => {
+            // 从列表中移除菜谱
+            setRecipes(recipes.filter(item => item.id !== recipe.id));
+            console.log(`Deleted recipe: ${recipe.name}`);
+          },
+          style: "destructive"
+        }
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* 搜索栏 */}
-      <SearchBar value={searchText} onChangeText={setSearchText} />
+      {/* 搜索栏 - 只在有菜谱时显示 */}
+      {recipes.length > 0 && (
+        <SearchBar value={searchText} onChangeText={setSearchText} />
+      )}
 
       {/* 食谱列表 */}
-      <ScrollView style={styles.recipeList}>
-        {recipes.map((recipe) => (
-          <RecipeItem 
-            key={recipe.id}
-            recipe={recipe} 
-            onPress={() => handleRecipePress(recipe)} 
-          />
-        ))}
+      <ScrollView 
+        style={styles.recipeList}
+        contentContainerStyle={recipes.length === 0 ? styles.emptyScrollContent : undefined}
+      >
+        {recipes.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>开始记录属于你的私人菜谱吧~</Text>
+          </View>
+        ) : (
+          recipes.map((recipe) => (
+            <RecipeItem 
+              key={recipe.id}
+              recipe={recipe} 
+              onPress={() => handleRecipePress(recipe)}
+              onEdit={handleEditRecipe}
+              onDelete={handleDeleteRecipe}
+            />
+          ))
+        )}
       </ScrollView>
 
       {/* 添加按钮 */}
@@ -92,14 +130,35 @@ const styles = StyleSheet.create({
   // 食谱列表相关样式
   recipeList: {
     flex: 1,
-    padding: 16,
+  },
+  
+  // 空状态时的ScrollView内容样式
+  emptyScrollContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
+  
+  // 空状态容器样式
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  // 空状态文字样式
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
   
   // 添加按钮样式
   addButton: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
+    right: 55,
+    bottom: 25,
     width: 56,
     height: 56,
     borderRadius: 28,
