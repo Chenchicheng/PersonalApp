@@ -1,5 +1,10 @@
 import { Slot } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
-  return <Slot />; // 根据子目录自动渲染 (tabs) 和 (modals)
+  return (
+    <SafeAreaProvider>
+      <Slot />
+    </SafeAreaProvider>
+  );
 }

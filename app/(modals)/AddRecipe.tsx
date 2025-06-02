@@ -1,19 +1,21 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
-  Image,
   Modal,
-  ScrollView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ImageUploader from '../../src/components/ImageUploader';
 
 interface Ingredient {
   id: string;
@@ -36,6 +38,7 @@ export default function AddRecipePage() {
   const [showTagModal, setShowTagModal] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
+  const [mainImage, setMainImage] = useState<string | null>(null);
 
   // 所有标签
   const [tags, setTags] = useState<string[]>([
@@ -43,6 +46,7 @@ export default function AddRecipePage() {
   ]);
 
   const handleSave = () => {
+    
     console.log('Save recipe:', { name, tags: selectedTags, ingredients, steps });
     router.back();
   };
@@ -118,6 +122,29 @@ export default function AddRecipePage() {
     ));
   };
 
+  const pickImage = async (type: 'main' | 'step', stepId?: string) => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: type === 'main' ? [1, 1] : [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        if (type === 'main') {
+          setMainImage(result.assets[0].uri);
+        } else if (stepId) {
+          setSteps(steps.map(step => 
+            step.id === stepId ? { ...step, image: result.assets[0].uri } : step
+          ));
+        }
+      }
+    } catch (error) {
+      Alert.alert('错误', '选择图片时出错');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -132,24 +159,36 @@ export default function AddRecipePage() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.form}>
-        {/* 添加图片按钮 */}
-        <TouchableOpacity style={styles.addImageButton}>
-          <MaterialIcons name="add-a-photo" size={32} color="#666" />
-          <Text style={styles.addImageText}>添加主图</Text>
-        </TouchableOpacity>
-
-        {/* 表单字段 */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>名称</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="添加食谱标题"
+      <KeyboardAwareScrollView
+        style={styles.form}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        keyboardShouldPersistTaps="handled"
+        extraScrollHeight={Platform.OS === 'ios' ? 100 : 0}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* 添加图片和标题区域 */}
+        <View style={styles.imageTitleContainer}>
+          <ImageUploader
+            imageUri={mainImage}
+            onImageSelected={setMainImage}
+            onImageDeleted={() => setMainImage(null)}
+            style={styles.addImageButton}
           />
+          <View style={styles.titleInputContainer}>
+            <TextInput
+              style={styles.titleInput}
+              value={name}
+              onChangeText={setName}
+              placeholder="添加食谱标题"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+          </View>
         </View>
 
+        {/* 表单字段 */}
         <View style={styles.inputGroup}>
           <View style={styles.selectedTagsContainer}>
             <TouchableOpacity
@@ -256,27 +295,20 @@ export default function AddRecipePage() {
                   placeholder="描述步骤"
                   multiline
                 />
-                <TouchableOpacity 
-                  style={styles.stepImageButton}
-                  onPress={() => {
-                    // TODO: 实现图片上传
-                    console.log('Upload step image');
-                  }}
-                >
-                  {step.image ? (
-                    <Image source={{ uri: step.image }} style={styles.stepImage} />
-                  ) : (
-                    <>
-                      <MaterialIcons name="add-a-photo" size={24} color="#666" />
-                      <Text style={styles.stepImageText}>添加步骤图片</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                <View style={styles.stepImageContainer}>
+                  <ImageUploader
+                    imageUri={step.image}
+                    onImageSelected={(uri) => handleUpdateStep(step.id, 'image', uri)}
+                    onImageDeleted={() => handleUpdateStep(step.id, 'image', '')}
+                    aspectRatio={[4, 3]}
+                    style={styles.stepImageButton}
+                  />
+                </View>
               </View>
             ))}
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* 标签选择底部弹窗 */}
       <Modal
@@ -398,17 +430,30 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  addImageButton: {
-    height: 200,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+  imageTitleContainer: {
+    flexDirection: 'row',
+    gap: 16,
     marginBottom: 16,
   },
-  addImageText: {
-    marginTop: 8,
-    color: '#666',
+  addImageButton: {
+    aspectRatio: 1,
+    width: '50%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleInputContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  titleInput: {
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    fontSize: 16,
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   inputGroup: {
     marginBottom: 16,
@@ -417,12 +462,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
     color: '#333',
-  },
-  input: {
-    backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
   },
   multilineInput: {
     height: 120,
@@ -569,10 +608,11 @@ const styles = StyleSheet.create({
   confirmAddTagButton: {
     padding: 4,
   },
-  modalOverlay: {
+  addTagInput: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    height: 40,
+    paddingHorizontal: 12,
+    fontSize: 14,
   },
   addTagModalOverlay: {
     flex: 1,
@@ -711,13 +751,20 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  stepImageButton: {
+  stepImageContainer: {
     marginTop: 8,
+    alignItems: 'center',
+  },
+  stepImageButton: {
     height: 120,
+    width: '60%',
     backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderStyle: 'dashed',
   },
   stepImage: {
     width: '100%',
@@ -728,5 +775,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: '#666',
+  },
+  mainImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  scrollContent: {
+    paddingBottom: 100, // 添加底部padding，确保内容不会被键盘遮挡
   },
 }); 
