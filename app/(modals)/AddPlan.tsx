@@ -5,24 +5,26 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Image,
   Modal,
   PanResponder,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View
 } from 'react-native';
+import DraggableFlatList from 'react-native-draggable-flatlist';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import RecipeItem from '../../src/components/RecipeItem';
+import RecipeSelectModal from './RecipeSelectModal';
 
 interface Recipe {
   id: number;
   name: string;
   category: string;
   ingredients: string[];
+  image?: any; // 可为require或url
 }
 
 interface MealPlan {
@@ -64,8 +66,17 @@ export default function AddPlanPage() {
   const [showDateModal, setShowDateModal] = useState(false);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner' | null>(null);
-  const [selectedRecipes, setSelectedRecipes] = useState<Recipe[]>([]);
+  const [selectedRecipes, setSelectedRecipes] = useState<number[]>([]);
   const [showTagModal, setShowTagModal] = useState(false);
+  const [recipeDisplayMode, setRecipeDisplayMode] = useState<{
+    breakfast: 'card' | 'list',
+    lunch: 'card' | 'list',
+    dinner: 'card' | 'list',
+  }>({
+    breakfast: 'card',
+    lunch: 'card',
+    dinner: 'card',
+  });
   
   // 三餐计划
   const [mealPlans, setMealPlans] = useState<{
@@ -80,9 +91,25 @@ export default function AddPlanPage() {
 
   // 示例食谱数据
   const [availableRecipes] = useState<Recipe[]>([
-    { id: 1, name: '红烧肉', category: '家常菜', ingredients: ['五花肉', '生抽', '老抽', '冰糖', '葱', '姜'] },
-    { id: 2, name: '清炒时蔬', category: '素菜', ingredients: ['青菜', '蒜', '盐', '油'] },
-    { id: 3, name: '番茄炒蛋', category: '快手菜', ingredients: ['番茄', '鸡蛋', '盐', '油'] }
+    { id: 1, name: '红烧肉', category: '家常菜', ingredients: ['五花肉', '生抽', '老抽', '冰糖', '葱', '姜'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 2, name: '清炒时蔬', category: '素菜', ingredients: ['青菜', '蒜', '盐', '油'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 3, name: '番茄炒蛋', category: '快手菜', ingredients: ['番茄', '鸡蛋', '盐', '油'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 4, name: '麻婆豆腐', category: '川菜', ingredients: ['豆腐', '猪肉末', '豆瓣酱', '花椒', '葱花'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 5, name: '糖醋排骨', category: '家常菜', ingredients: ['排骨', '醋', '糖', '酱油', '葱姜蒜'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 6, name: '水煮鱼', category: '川菜', ingredients: ['鱼片', '豆芽', '辣椒', '花椒', '葱姜'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 7, name: '宫保鸡丁', category: '川菜', ingredients: ['鸡肉', '花生', '干辣椒', '葱', '姜'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 8, name: '蒜蓉炒菜心', category: '素菜', ingredients: ['菜心', '蒜', '盐', '油'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 9, name: '鱼香肉丝', category: '川菜', ingredients: ['猪肉丝', '木耳', '胡萝卜', '豆瓣酱'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 10, name: '酸辣汤', category: '汤类', ingredients: ['豆腐', '木耳', '胡萝卜', '醋', '辣椒'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 12, name: '蚝油生菜', category: '素菜', ingredients: ['生菜', '蚝油', '蒜'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 13, name: '炖牛腩', category: '家常菜', ingredients: ['牛腩', '土豆', '胡萝卜', '八角'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 14, name: '咕噜肉', category: '粤菜', ingredients: ['猪肉', '菠萝', '青椒', '番茄酱'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 15, name: '芙蓉蛋', category: '粤菜', ingredients: ['鸡蛋', '虾仁', '葱'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 16, name: '小炒黄牛肉', category: '湘菜', ingredients: ['黄牛肉', '青椒', '姜', '蒜'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 17, name: '蘑菇炒鸡蛋', category: '家常菜', ingredients: ['蘑菇', '鸡蛋', '葱'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 18, name: '紫菜蛋花汤', category: '汤类', ingredients: ['紫菜', '鸡蛋', '葱', '盐'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 19, name: '红豆汤', category: '甜品', ingredients: ['红豆', '冰糖', '水'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
+    { id: 20, name: '银耳莲子汤', category: '甜品', ingredients: ['银耳', '莲子', '红枣', '冰糖'], image: { uri: 'https://via.placeholder.com/56x56.png?text=菜谱' } },
   ]);
 
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
@@ -358,33 +385,21 @@ export default function AddPlanPage() {
 
   const handleAddRecipe = (mealType: 'breakfast' | 'lunch' | 'dinner') => {
     setSelectedMealType(mealType);
-    setSelectedRecipes(mealPlans[mealType].recipes);
+    setSelectedRecipes(mealPlans[mealType].recipes.map((r: Recipe) => r.id));
     setShowRecipeModal(true);
   };
 
-  const handleSelectRecipe = (recipe: Recipe) => {
-    setSelectedRecipes(prev => {
-      const exists = prev.find(r => r.id === recipe.id);
-      if (exists) {
-        return prev.filter(r => r.id !== recipe.id);
-      } else {
-        return [...prev, recipe];
-      }
-    });
-  };
-
-  const handleConfirmRecipes = () => {
+  const handleRecipeSelectDone = () => {
     if (selectedMealType) {
       setMealPlans(prev => ({
         ...prev,
         [selectedMealType]: {
           ...prev[selectedMealType],
-          recipes: selectedRecipes
+          recipes: availableRecipes.filter((r: Recipe) => selectedRecipes.includes(r.id)),
         }
       }));
-      setShowRecipeModal(false);
-      handleSave();  // 实时保存
     }
+    setShowRecipeModal(false);
   };
 
   const handleRemoveRecipe = (mealType: 'breakfast' | 'lunch' | 'dinner', recipeId: number) => {
@@ -409,7 +424,6 @@ export default function AddPlanPage() {
 
   // 编辑/查看模式
   const [showIngredientPanel, setShowIngredientPanel] = useState(false);
-  const [isEditIngredient, setIsEditIngredient] = useState(false);
 
   // 食材对象数组 [{ name, amount }]
   const [ingredientList, setIngredientList] = useState([
@@ -435,37 +449,8 @@ export default function AddPlanPage() {
     { name: '盐', amount: '适量' }
   ]);
 
-  // 切换编辑/保存
-  const handleEditSave = () => {
-    if (isEditIngredient) {
-      // 保存逻辑（可扩展：如同步到后端）
-      setIsEditIngredient(false);
-    } else {
-      setIsEditIngredient(true);
-    }
-  };
-
-  // 编辑输入
-  const handleIngredientChange = (idx: number, key: 'name' | 'amount', value: string) => {
-    setIngredientList(list => {
-      const newList = [...list];
-      newList[idx] = { ...newList[idx], [key]: value };
-      return newList;
-    });
-  };
-
-  // 删除一项
-  const handleRemoveIngredient = (idx: number) => {
-    setIngredientList(list => list.filter((_, i) => i !== idx));
-  };
-
-  // 新增一项
-  const handleAddIngredient = () => {
-    setIngredientList(list => [...list, { name: '', amount: '' }]);
-  };
-
   const ingredientPanelAnim = useRef(new Animated.Value(0)).current;
-  const ingredientPanelTranslateY = useRef(new Animated.Value(100)).current;
+  const ingredientPanelTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const ingredientPanelDragY = useRef(new Animated.Value(0)).current;
 
   const handleIngredientPanelClose = useCallback(() => {
@@ -476,7 +461,7 @@ export default function AddPlanPage() {
         useNativeDriver: true,
       }),
       Animated.timing(ingredientPanelTranslateY, {
-        toValue: 100,
+        toValue: Dimensions.get('window').height,
         duration: 400,
         useNativeDriver: true,
       })
@@ -519,34 +504,20 @@ export default function AddPlanPage() {
 
   // 控制弹窗显隐动画
   useEffect(() => {
-    if (showIngredientPanel) {
-      Animated.parallel([
-        Animated.timing(ingredientPanelAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(ingredientPanelTranslateY, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        })
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(ingredientPanelAnim, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(ingredientPanelTranslateY, {
-          toValue: 100,
-          duration: 600,
-          useNativeDriver: true,
-        })
-      ]).start();
-    }
+    Animated.timing(ingredientPanelTranslateY, {
+      toValue: showIngredientPanel ? 0 : Dimensions.get('window').height,
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
   }, [showIngredientPanel]);
+
+  const handleToggleMode = (mealType: 'breakfast' | 'lunch' | 'dinner') => {
+    setRecipeDisplayMode(prev => ({
+      ...prev,
+      [mealType]: prev[mealType] === 'card' ? 'list' : 'card'
+    }));
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -573,10 +544,11 @@ export default function AddPlanPage() {
         <View style={{ width: 24 }} />
       </View>
 
+      {/* 整体可滚动的ScrollView */}
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }} // 给底部清单留空间
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* 日期选择器 */}
         <Animated.View 
@@ -589,7 +561,7 @@ export default function AddPlanPage() {
           {...panResponder.panHandlers}
         >
           {getDateOptions().map((option) => (
-            <TouchableOpacity
+            <TouchableOpacity 
               key={option.date}
               style={[
                 styles.dateItem,
@@ -613,7 +585,7 @@ export default function AddPlanPage() {
           ))}
         </Animated.View>
 
-        {/* 三餐计划 */}
+        {/* 三餐计划整体放入ScrollView */}
         {(['breakfast', 'lunch', 'dinner'] as const).map((mealType) => (
           <View key={mealType} style={styles.section}>
             <View style={styles.mealHeader}>
@@ -621,118 +593,146 @@ export default function AddPlanPage() {
                 {mealType === 'breakfast' ? '早餐' : 
                  mealType === 'lunch' ? '午餐' : '晚餐'}
               </Text>
-              <TouchableOpacity 
-                style={styles.addButton}
-                onPress={() => handleAddRecipe(mealType)}
-              >
-                <MaterialIcons name="add" size={24} color="#ff7603" />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView horizontal style={styles.recipesList}>
-              {mealPlans[mealType].recipes.map((recipe) => (
-                <View key={recipe.id} style={styles.recipeItem}>
-                  <RecipeItem
-                    recipe={recipe}
-                    onPress={() => {}}
-                    onEdit={() => {}}
-                    onDelete={() => handleRemoveRecipe(mealType, recipe.id)}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {/* 模式切换按钮 */}
+                <TouchableOpacity
+                  style={{ marginRight: 8, padding: 4 }}
+                  onPress={() => handleToggleMode(mealType)}
+                >
+                  <MaterialIcons
+                    name={recipeDisplayMode[mealType] === 'card' ? 'view-list' : 'view-module'}
+                    size={22}
+                    color="#ff7603"
                   />
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        ))}
-      </ScrollView>
-
-      {/* 右下角浮动食材清单按钮/面板 */}
-      {showIngredientPanel ? (
-        <Modal
-          visible={showIngredientPanel}
-          transparent
-          animationType="none"
-          onRequestClose={handleIngredientPanelClose}
-        >
-          <TouchableWithoutFeedback onPress={handleIngredientPanelClose}>
-            <View style={styles.ingredientModalOverlay}>
-              <TouchableWithoutFeedback>
-                <Animated.View style={[styles.ingredientFullPanel, {
-                  opacity: ingredientPanelAnim,  
-                  transform: [
-                    { translateY: ingredientPanelTranslateY.interpolate({ 
-                      inputRange: [0, 100], 
-                      outputRange: [0, Dimensions.get('window').height * 0.3]
-                    }) },
-                    { translateY: ingredientPanelDragY }
-                  ]
-                }]}> 
-                  <View style={styles.ingredientPanelHandleArea}>
-                    <View
-                      style={styles.ingredientPanelHandleBar}
-                      {...ingredientPanelPanResponder.panHandlers}
-                      hitSlop={{ top: 20, bottom: 20, left: 30, right: 30 }}
-                    />
-                    <TouchableOpacity style={styles.ingredientPanelEditBtnRight} onPress={handleEditSave}>
-                      <Text style={styles.ingredientPanelEditBtnText}>{isEditIngredient ? '完成' : '编辑'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.addButton}
+                  onPress={() => handleAddRecipe(mealType)}
+                >
+                  <MaterialIcons name="add" size={24} color="#ff7603" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            {/* 展示模式切换 */}
+            {recipeDisplayMode[mealType] === 'card' ? (
+              <ScrollView horizontal style={styles.recipesList} showsHorizontalScrollIndicator={false}>
+                {mealPlans[mealType].recipes.map((recipe) => (
+                  <View key={recipe.id} style={styles.recipeItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#333' }}>{recipe.name}</Text>
+                      <Text style={{ fontSize: 12, color: '#bbb', marginTop: 2 }}>{recipe.category}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{ marginLeft: 8, padding: 2, position: 'absolute', top: 6, right: 6 }}
+                      onPress={() => handleRemoveRecipe(mealType, recipe.id)}
+                    >
+                      <MaterialIcons name="close" size={18} color="#ff7603" />
                     </TouchableOpacity>
                   </View>
-                  <View style={{ flex: 1, minHeight: 200 }}>
-                    <ScrollView
-                      style={{ flex: 1 }}
-                      contentContainerStyle={{
-                        flexGrow: 1,
-                        paddingBottom: 24,
-                        paddingHorizontal: 20,
-                        minHeight: Dimensions.get('window').height * 0.3
-                      }}
-                      keyboardShouldPersistTaps="handled"
-                      scrollEnabled={true}
-                      nestedScrollEnabled={true}
+                ))}
+              </ScrollView>
+            ) : (
+              <DraggableFlatList
+                data={mealPlans[mealType].recipes}
+                keyExtractor={item => item.id.toString()}
+                renderItem={({ item, drag, isActive }) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.recipeItemVertical, isActive && { opacity: 0.7 }]}
+                    onLongPress={drag}
+                    delayLongPress={200}
+                    activeOpacity={0.9}
+                  >
+                    {/* 左侧图片 */}
+                    <Image
+                      source={item.image}
+                      style={styles.recipeImage}
+                      resizeMode="cover"
+                    />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#333' }}>{item.name}</Text>
+                      <Text style={{ fontSize: 12, color: '#bbb', marginTop: 2 }}>{item.category}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{ marginLeft: 8, padding: 2 }}
+                      onPress={() => handleRemoveRecipe(mealType, item.id)}
                     >
-                      {ingredientList.map((item, idx) => (
-                        <View key={idx} style={[styles.ingredientItemRow, {
-                          minHeight: 40,
-                          paddingRight: 30
-                        }]}>
-                          <Text style={styles.ingredientIndex}>{idx + 1}.</Text>
-                          {isEditIngredient ? (
-                            <>
-                              <TextInput
-                                style={styles.ingredientInput}
-                                value={item.name}
-                                placeholder="食材名称"
-                                onChangeText={v => handleIngredientChange(idx, 'name', v)}
-                              />
-                              <TextInput
-                                style={styles.ingredientInput}
-                                value={item.amount}
-                                placeholder="用量"
-                                onChangeText={v => handleIngredientChange(idx, 'amount', v)}
-                              />
-                              <TouchableOpacity onPress={() => handleRemoveIngredient(idx)}>
-                                <MaterialIcons name="remove-circle-outline" size={22} color="#ff7603" />
-                              </TouchableOpacity>
-                            </>
-                          ) : (
-                            <>
-                              <Text style={styles.ingredientName}>{item.name}</Text>
-                              <Text style={styles.ingredientAmount}>{item.amount}</Text>
-                            </>
-                          )}
-                        </View>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </Animated.View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-      ) : (
-        <TouchableOpacity style={styles.ingredientFloatButton} onPress={() => setShowIngredientPanel(true)}>
+                      <MaterialIcons name="close" size={18} color="#ff7603" />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                )}
+                onDragEnd={({ data }) => {
+                  setMealPlans(prev => ({
+                    ...prev,
+                    [mealType]: {
+                      ...prev[mealType],
+                      recipes: data,
+                    }
+                  }));
+                }}
+                containerStyle={styles.recipeListVertical}
+                contentContainerStyle={{ paddingBottom: 4 }}
+                scrollEnabled={false}
+              />
+            )}
+          </View>
+        ))}
+
+        {/* 添加食材清单浮动按钮 */}
+        <TouchableOpacity 
+          style={styles.ingredientFloatButton}
+          onPress={() => setShowIngredientPanel(true)}
+        >
           <Text style={styles.ingredientFloatButtonText}>食材清单</Text>
         </TouchableOpacity>
-      )}
+      </ScrollView>
+
+      {/* 重构后的食材弹窗 */}
+      <Modal
+        visible={showIngredientPanel}
+        transparent
+        animationType="none"
+        onRequestClose={handleIngredientPanelClose}
+      >
+        <View style={styles.ingredientModalOverlay}>
+          <Animated.View 
+            style={[
+              styles.ingredientFullPanel,
+              {
+                transform: [
+                  { 
+                    translateY: ingredientPanelTranslateY
+                  }
+                ]
+              }
+            ]}
+          >
+            {/* 手势处理区域 */}
+            <View style={styles.panHandle} {...ingredientPanelPanResponder.panHandlers}>
+              <View style={styles.panHandleBar} />
+            </View>
+
+            {/* 滚动内容容器 */}
+            <View style={styles.scrollContainer}>
+              <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={true}
+                overScrollMode="always"
+              >
+                {ingredientList.map((item, idx) => (
+                  <View key={idx} style={styles.ingredientItem}>
+                    <Text style={styles.itemIndex}>{idx + 1}.</Text>
+                    <View style={styles.itemContent}>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemAmount}>{item.amount}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
 
       {/* 周选择弹窗 */}
       <Modal
@@ -818,47 +818,15 @@ export default function AddPlanPage() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* 菜谱选择弹窗 */}
-      <Modal
-        visible={showRecipeModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowRecipeModal(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowRecipeModal(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>选择菜谱</Text>
-                  <TouchableOpacity onPress={() => setShowRecipeModal(false)}>
-                    <MaterialIcons name="close" size={24} color="#666" />
-                  </TouchableOpacity>
-                </View>
-                <ScrollView style={styles.recipeOptions}>
-                  {availableRecipes.map((recipe) => (
-                    <TouchableOpacity
-                      key={recipe.id}
-                      style={[
-                        styles.recipeOption,
-                        selectedRecipes.find(r => r.id === recipe.id) && styles.selectedRecipeOption
-                      ]}
-                      onPress={() => handleSelectRecipe(recipe)}
-                    >
-                      <View style={styles.recipeOptionContent}>
-                        <Text style={styles.recipeOptionText}>{recipe.name}</Text>
-                        <Text style={styles.recipeOptionCategory}>{recipe.category}</Text>
-                      </View>
-                      {selectedRecipes.find(r => r.id === recipe.id) && (
-                        <MaterialIcons name="check" size={24} color="#ff7603" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
+      {/* 选择菜谱弹窗集成 */}
+      <Modal visible={showRecipeModal} transparent animationType="slide">
+        <RecipeSelectModal
+          recipes={availableRecipes}
+          selected={selectedRecipes}
+          onSelect={setSelectedRecipes}
+          onDone={handleRecipeSelectDone}
+          onClose={() => setShowRecipeModal(false)}
+        />
       </Modal>
 
       {/* 标签选择底部弹窗 */}
@@ -958,21 +926,32 @@ const styles = StyleSheet.create({
   addButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ff7603',
+
   },
   recipesList: {
     flexDirection: 'row',
-    marginHorizontal: -16, // 抵消父容器的padding
-    paddingHorizontal: 16, // 恢复内部内容的padding
+    paddingHorizontal: 12,
+    paddingBottom: 4,
   },
   recipeItem: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
     marginRight: 12,
-    width: 200,
+    padding: 12,
+    minWidth: 140,
+    maxWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
   },
   modalOverlay: {
     flex: 1,
@@ -1124,132 +1103,93 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
-  ingredientFullPanel: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: undefined,
-    maxHeight: Dimensions.get('window').height * 0.6,
-    minHeight: Dimensions.get('window').height * 0.3,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 16,
-    zIndex: 101,
-    flexDirection: 'column',
-  },
-  ingredientPanelCloseBtn: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 2,
-    padding: 4,
-  },
-  ingredientPanelBoxFull: {
-    flex: 1,
-    paddingHorizontal: 20,
-    marginTop: 0,
-  },
-  ingredientPanelListText: {
-    fontSize: 15,
-    color: '#666',
-    flexWrap: 'wrap',
-  },
-  ingredientPanelRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  ingredientPanelEditBtn: {
-    color: '#ff7603',
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 12,
-  },
-  ingredientItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    width: '100%',
-  },
-  ingredientInput: {
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 15,
-    color: '#333',
-    marginRight: 8,
-    minWidth: 70,
-    backgroundColor: '#fff',
-  },
-  ingredientName: {
-    fontSize: 15,
-    color: '#333',
-    marginRight: 16,
-    minWidth: 70,
-  },
-  ingredientAmount: {
-    fontSize: 15,
-    color: '#666',
-    minWidth: 50,
-  },
-  ingredientAddBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  ingredientAddBtnText: {
-    color: '#ff7603',
-    fontSize: 15,
-    marginLeft: 4,
-  },
-  ingredientIndex: {
-    fontSize: 15,
-    color: '#999',
-    marginRight: 8,
-    minWidth: 18,
-    textAlign: 'right',
-  },
   ingredientModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.18)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
     justifyContent: 'flex-end',
   },
-  ingredientPanelHandleArea: {
+  ingredientFullPanel: {
+    height: Dimensions.get('window').height * 0.4,
+    position: 'relative',
+    top: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  panHandle: {
+    padding: 16,
     alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 8,
-    width: '100%',
-    zIndex: 10,
-    backgroundColor: 'transparent',
   },
-  ingredientPanelHandleBar: {
-    width: 70,
-    height: 12,
-    borderRadius: 6,
+  panHandleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#ddd',
-    marginBottom: 4,
-    alignSelf: 'center',
   },
-  ingredientPanelEditBtnRight: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 2,
-    padding: 4,
+  scrollContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
   },
-  ingredientPanelEditBtnText: {
-    color: '#ff7603',
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  ingredientItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    marginVertical: 2,
+  },
+  itemContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 16,
+  },
+  itemIndex: {
+    width: 40,
     fontSize: 16,
-    fontWeight: '600',
+    color: '#999',
+    textAlign: 'center',
+  },
+  itemName: {
+    flexShrink: 1,
+    fontSize: 16,
+    color: '#333',
+    marginRight: 4,
+  },
+  itemAmount: {
+    fontSize: 15,
+    color: '#666',
+    backgroundColor: '#fff',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  recipeListVertical: {
+    flexDirection: 'column',
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  recipeItemVertical: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  recipeImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+    marginRight: 12,
   },
 }); 

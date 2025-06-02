@@ -35,12 +35,8 @@ export default function AddRecipePage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [ingredients, setIngredients] = useState<Ingredient[]>([
-    { id: '1', name: '', amount: '' }
-  ]);
-  const [steps, setSteps] = useState<Step[]>([
-    { id: '1', description: '' }
-  ]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [steps, setSteps] = useState<Step[]>([]);
   const [showTagModal, setShowTagModal] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
