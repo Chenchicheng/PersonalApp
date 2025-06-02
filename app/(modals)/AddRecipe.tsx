@@ -1,9 +1,11 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
+  Easing,
   Modal,
   Platform,
   StyleSheet,
@@ -48,6 +50,56 @@ export default function AddRecipePage() {
   const [tags, setTags] = useState<string[]>([
     '家常菜', '快手菜', '下饭菜', '养生菜', '川菜', '粤菜', '湘菜', '东北菜', '西餐', '日料', '韩餐'
   ]);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(100)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  const animateModal = useCallback((show: boolean) => {
+    // 停止当前正在进行的动画
+    if (animationRef.current) {
+      animationRef.current.stop();
+    }
+
+    const fadeConfig = {
+      toValue: show ? 1 : 0,
+      duration: 200,
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+      useNativeDriver: true,
+    };
+
+    const slideConfig = {
+      toValue: show ? 0 : 100,
+      duration: 200,
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+      useNativeDriver: true,
+    };
+
+    animationRef.current = Animated.parallel([
+      Animated.timing(fadeAnim, fadeConfig),
+      Animated.timing(slideAnim, slideConfig)
+    ]);
+
+    animationRef.current.start();
+  }, [fadeAnim, slideAnim]);
+
+  useEffect(() => {
+    animateModal(showTagModal);
+    
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
+    };
+  }, [showTagModal, animateModal]);
+
+  const handleCloseModal = useCallback(() => {
+    animateModal(false);
+    // 延迟关闭 Modal，等待动画完成
+    setTimeout(() => {
+      setShowTagModal(false);
+    }, 200);
+  }, [animateModal]);
 
   const handleSave = () => {
     
@@ -318,16 +370,16 @@ export default function AddRecipePage() {
       <Modal
         visible={showTagModal}
         transparent
-        animationType="slide"
-        onRequestClose={() => setShowTagModal(false)}
+        animationType="none"
+        onRequestClose={handleCloseModal}
       >
-        <TouchableWithoutFeedback onPress={() => setShowTagModal(false)}>
-          <View style={styles.modalOverlay}>
+        <TouchableWithoutFeedback onPress={handleCloseModal}>
+          <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
             <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
+              <Animated.View style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}></Text>
-                  <TouchableOpacity onPress={() => setShowTagModal(false)}>
+                  <TouchableOpacity onPress={handleCloseModal}>
                     <Text style={styles.modalCloseButton}>完成</Text>
                   </TouchableOpacity>
                 </View>
@@ -394,9 +446,9 @@ export default function AddRecipePage() {
                     )}
                   </View>
                 </View>
-              </View>
+              </Animated.View>
             </TouchableWithoutFeedback>
-          </View>
+          </Animated.View>
         </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
@@ -540,6 +592,14 @@ const styles = StyleSheet.create({
     padding: 16,
     maxHeight: '90%',
     minHeight: '60%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   modalHeader: {
     flexDirection: 'row',

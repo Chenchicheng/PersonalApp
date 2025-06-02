@@ -37,7 +37,10 @@ export default function RecipesPage() {
     setModalVisible(false);
     // Navigate to plan page would go here
     console.log('Navigate to plan page');
-    router.push("/plan");
+    // ✅ 延迟导航，等待动画关闭
+    setTimeout(() => {
+      router.push('/(modals)/AddPlan');
+    }, 250); // 动画持续 200ms，延迟 250ms 保险
   };
 
   const handleRecipePress = (recipe: Recipe) => {
